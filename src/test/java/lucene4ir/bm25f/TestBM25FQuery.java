@@ -117,5 +117,26 @@ public class TestBM25FQuery extends LuceneTestCase {
     assertEquals(3, docs.length);
     
   }
+
+  @Test
+  public void testExplain() throws IOException{
+    // we should get an explain of a main score and sub scores per term
+    final BM25FParameters bm25FParameters = new BM25FParameters();
+    bm25FParameters.setK1(1);
+    bm25FParameters.addFieldParams("title", 1,1);
+    bm25FParameters.addFieldParams("author", 1,1);
+    bm25FParameters.addFieldParams("description", 1,1);
+    bm25FParameters.setMainField("title");
+    final Query q = new BM25FBooleanTermQuery(new Term("title","leonardo"), bm25FParameters);
+
+    final ScoreDoc[] docs = getResults("title","leonardo");
+    for(ScoreDoc doc: docs){
+      System.out.println( searcherUnderTest.explain(q, doc.doc));
+
+    }
+
+
+
+  }
   
 }
