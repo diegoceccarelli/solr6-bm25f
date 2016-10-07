@@ -151,16 +151,43 @@ public class BM25FSimilarity extends Similarity {
 
 	
   @Override
-  public SimWeight computeWeight(CollectionStatistics arg0,
-      TermStatistics... arg1) {
-    // TODO Auto-generated method stub
-    return null;
+  public SimWeight computeWeight(CollectionStatistics collectionStats, TermStatistics... termStats) {
+	  // TODO Auto-generated method stub
+//	  final Explanation idf = termStats.length == 1 ? idfExplain(collectionStats,
+//				termStats[0]) : idfExplain(collectionStats, termStats);
+//
+	  float idf = 0.5f;
+	  boosts = params.getFieldWeights();
+	  lengthBoosts = params.getFieldLengthBoosts();
+	  k1 = params.getK1();
+
+	  final String field = collectionStats.field();
+	  final float avgdl = avgFieldLength(collectionStats);
+
+	  // ignoring query boost, using bm25f query boost
+	  float boost = 1;
+	  if (boosts.containsKey(field)) {
+		  boost = boosts.get(field);
+	  }
+	  float lengthBoost = 1;
+	  if (lengthBoosts.containsKey(field)) {
+		  lengthBoost = lengthBoosts.get(field);
+	  }
+
+	  // compute freq-independent part of bm25 equation across all norm values
+	  float cache[] = new float[256];
+	  for (int i = 0; i < cache.length; i++) {
+		  cache[i] = ((1 - lengthBoost) + lengthBoost * decodeNormValue((byte) i) / avgdl);
+//			   System.out.println("cache " + i + "\t" + cache[i]);
+	  }
+
+	  return new BM25FSimWeight(field, idf, boost, avgdl, null, k1);
+
   }
 	/**
 	 * Compute the average length for a field, given its stats.
 	 * 
-	 * @param the
-	 *            length statistics of a field.
+	 * @param stats the length statistics of a field.
 	 * @return the average length of the field.
 	 */
 	private float avgFieldLength(CollectionStatistics stats) {
@@ -178,6 +205,8 @@ public class BM25FSimilarity extends Similarity {
 	protected float scorePayload(int doc, int start, int end, BytesRef payload) {
 		return 1;
 	}
+
+	public Explanation explain(int doc, Explanation freq) {
 
 //	public Explanation idfExplain(CollectionStatistics collectionStats,
 //			TermStatistics termStats) {
@@ -346,7 +375,7 @@ public class BM25FSimilarity extends Similarity {
 	public class BM25FSimWeight extends SimWeight {
 
 		String field;
-		Explanation idf;
+		float idf;
 		float queryBoost;
 		float avgdl;
 		float cache[];
@@ -361,10 +390,9 @@ public class BM25FSimilarity extends Similarity {
 		 * @param idf
 		 * @param queryBoost
 		 * @param avgdl
-		 * @param params
+		 * @param k1
 		 */
-		public BM25FSimWeight(String field, Explanation idf, float queryBoost,
-				float avgdl, float cache[], float k1) {
+		public BM25FSimWeight(String field, float idf, float queryBoost, float avgdl, float cache[], float k1) {
 			this.field = field;
 			this.idf = idf;
 			this.queryBoost = queryBoost;
@@ -378,7 +406,7 @@ public class BM25FSimilarity extends Similarity {
 		public float getValueForNormalization() {
 			// we return a TF-IDF like normalization to be nice, but we don't
 			// actually normalize ourselves.
-			final float queryWeight = idf.getValue() * queryBoost;
+			final float queryWeight = idf * queryBoost;
 			return queryWeight * queryWeight;
 		}
 
@@ -404,39 +432,27 @@ public class BM25FSimilarity extends Similarity {
 
 
 
-//	private Explanation explainScore(int doc, Explanation freq,
-//			BM25FSimWeight stats, byte[] norms, float finalScore) {
-//		boosts = params.getFieldWeights();
-//		lengthBoosts = params.getFieldLengthBoosts();
-//		k1 = params.getK1();
-//
-//		// // return queryBoost * freq / cache[norms[doc] & 0xFF];
-//		// float bField = params.getFieldLengthBoosts().get(stats.field);
-//		// float boost = params.getFieldWeights().get(stats.field);
-//		// float num = freq * boost;
-//		//
-//		// float den = 1 - bField;
-//		// if (norms == null) {
-//		// logger.warn("no norms for field {} ", stats.field);
-//		// } else {
-//		//
-//		// byte norm = this.norms[doc];
-//		// den += bField * decodeNormValue(norm);
-//		// }
-//		// if (den == 0)
-//		// return 0;
-//		// return num / den;
-//
-//		final Explanation result = new Explanation();
-//		result.setDescription("score(doc=" + doc + ",field=" + stats.field
-//				+ ", freq=" + freq + "), division of:");
-//
-//		final Explanation num = new Explanation();
-//		num.setDescription(" numerator, product of: ");
-//		float boost = 0;
-//		if (boosts != null) {
-//      boost = boosts.get(stats.field);
-//    }
+
+	private Explanation explainScore(int doc, Explanation freqExplain, BM25FSimWeight stats, byte[] norms) {
+		String field = stats.getField();
+		float freq = freqExplain.getValue();
+		float fieldWeight;
+		float fieldLengthWeight;
+		float fieldLength;
+		float fieldAverageLength;
+		k1 = params.getK1();
+
+
+//		final Explanation result = Explanation.match()
+		result.setDescription("score(doc=" + doc + ",field=" + stats.field
+				+ ", freq=" + freq + "), division of:");
+
+		final Explanation num = new Explanation();
+		num.setDescription(" numerator, product of: ");
+		float boost = 0;
+		if (boosts != null) {
+      boost = boosts.get(stats.field);
+    }
 //
 //		final Explanation boostExpl = new Explanation(boost, "boost[" + stats.field
 //				+ "]");

@@ -82,6 +82,12 @@ public class BM25FParameters {
 	}
 
 
+
+	public float getLengthBoost(String field) {
+		return fieldLengthBoosts.get(field);
+	}
+
+
 	/**
 	 * @return the fields
 	 */

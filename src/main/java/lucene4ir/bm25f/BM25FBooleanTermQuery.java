@@ -309,8 +309,7 @@ public class BM25FBooleanTermQuery extends Query {
         // termState.(docFreq);
         // }
 
-        return new BM25FTermWeight(searcher, termState, fieldTermContext,
-                bm25fParams);
+        return new BM25FTermWeight(searcher, termState, fieldTermContext, bm25fParams);
     }
 
     /**
