@@ -17,8 +17,10 @@
  */
 package lucene4ir.bm25f;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,26 +34,28 @@ public class BM25FParameters {
 
 	public String mainField;
 
-	private String[] fields;
+	private List<String> fields;
 	/*
-	 * boosts on fields, you can boost more the match on a field rather than
+	 * fieldWeights on fields, you can boost more the match on a field rather than
 	 * another
 	 */
-	private Map<String, Float> boosts;
+	private Map<String, Float> fieldWeights;
 	/*
-	 * boosts on length, you can boost a record if a field length is similar to
+	 * fieldWeights on length, you can boost a record if a field length is similar to
 	 * the average field length in the collection
 	 */
-	private Map<String, Float> bParams;
+	private Map<String, Float> fieldLengthBoosts;
 
 	float k1 = 1;
+
+
 
 	@Override
 	public BM25FParameters clone() {
 		BM25FParameters clone = new BM25FParameters();
 		clone.setK1(k1);
-		clone.boosts = new HashMap<String, Float>(boosts);
-		clone.bParams = new HashMap<String, Float>(bParams);
+		clone.fieldWeights = new HashMap<String, Float>(fieldWeights);
+		clone.fieldLengthBoosts = new HashMap<String, Float>(fieldLengthBoosts);
 		clone.fields = fields;
 		clone.mainField = mainField;
 		return clone;
@@ -59,64 +63,66 @@ public class BM25FParameters {
 
 	public BM25FParameters() {
 		// default params
-		boosts = new HashMap<String, Float>();
-		bParams = new HashMap<String, Float>();
-		fields = new String[0];
+		fieldWeights = new HashMap<String, Float>();
+		fieldLengthBoosts = new HashMap<String, Float>();
+		fields = new ArrayList<>();
 	};
 
-	public float getBoost(String field) {
-		return boosts.get(field);
+	public BM25FParameters addFieldParams(String field, float fieldLengthBoost, float fieldWeight){
+		fieldLengthBoosts.put(field, fieldLengthBoost);
+		fieldWeights.put(field, fieldWeight);
+		fields.add(field);
+		return this;
 	}
 
-	/**
-	 * @param fields
-	 *            - the fields to set
-	 */
-	public void setFields(String[] fields) {
-		this.fields = fields;
+
+
+	public float getBoost(String field) {
+		return fieldWeights.get(field);
 	}
+
 
 	/**
 	 * @return the fields
 	 */
 	public String[] getFields() {
-		return fields;
+		return fields.toArray(new String[fields.size()]);
 	}
 
 	/**
-	 * @param boosts
-	 *            - the boosts to set (see bm25f formula)
+	 * @param fieldWeights
+	 *            - the fieldWeights to set (see bm25f formula)
 	 */
-	public void setBoosts(Float[] boosts) {
-		this.boosts = new HashMap<String, Float>();
-		for (int i = 0; i < fields.length; i++) {
-			this.boosts.put(fields[i], boosts[i]);
+	public void setFieldWeights(Float[] fieldWeights) {
+		this.fieldWeights = new HashMap<String, Float>();
+		for (int i = 0; i < fields.size(); i++) {
+			this.fieldWeights.put(fields.get(i), fieldWeights[i]);
 		}
 	}
 
 	/**
-	 * @return the boosts (see bm25f formula)
+	 * @return the fieldWeights (see bm25f formula)
 	 */
-	public Map<String, Float> getBoosts() {
-		return boosts;
+	public Map<String, Float> getFieldWeights() {
+		return fieldWeights;
 	}
 
 	/**
-	 * @param bParams
-	 *            the bParams to set (see bm25f formula)
+	 * @param fieldLengthBoosts
+	 *            the fieldLengthBoosts to set (see bm25f formula)
 	 */
-	public void setbParams(Float[] bParams) {
-		this.bParams = new HashMap<String, Float>();
-		for (int i = 0; i < fields.length; i++) {
-			this.bParams.put(fields[i], bParams[i]);
+	public void setFieldLengthBoosts(Float[] fieldLengthBoosts) {
+		this.fieldLengthBoosts = new HashMap<String, Float>();
+		for (int i = 0; i < fields.size(); i++) {
+			this.fieldLengthBoosts.put(fields.get(i), fieldLengthBoosts[i]);
 		}
 	}
 
 	/**
-	 * @return the bParams (see bm25f formula)
+	 * @return the fieldLengthBoosts (see bm25f formula)
 	 */
-	public Map<String, Float> getbParams() {
-		return bParams;
+	public Map<String, Float> getFieldLengthBoosts() {
+		return fieldLengthBoosts;
 	}
 
 	/**
@@ -143,9 +149,9 @@ public class BM25FParameters {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((bParams == null) ? 0 : bParams.hashCode());
-		result = prime * result + ((boosts == null) ? 0 : boosts.hashCode());
-		result = prime * result + Arrays.hashCode(fields);
+		result = prime * result + ((fieldLengthBoosts == null) ? 0 : fieldLengthBoosts.hashCode());
+		result = prime * result + ((fieldWeights == null) ? 0 : fieldWeights.hashCode());
+		result = prime * result + fields.hashCode();
 		result = prime * result + Float.floatToIntBits(k1);
 		return result;
 	}
@@ -164,18 +170,17 @@ public class BM25FParameters {
 		if (getClass() != obj.getClass())
 			return false;
 		BM25FParameters other = (BM25FParameters) obj;
-		if (bParams == null) {
-			if (other.bParams != null)
+		if (fieldLengthBoosts == null) {
+			if (other.fieldLengthBoosts != null)
 				return false;
-		} else if (!bParams.equals(other.bParams))
+		} else if (!fieldLengthBoosts.equals(other.fieldLengthBoosts))
 			return false;
-		if (boosts == null) {
-			if (other.boosts != null)
+		if (fieldWeights == null) {
+			if (other.fieldWeights != null)
 				return false;
-		} else if (!boosts.equals(other.boosts))
+		} else if (!fieldWeights.equals(other.fieldWeights))
 			return false;
-		if (!Arrays.equals(fields, other.fields))
-			return false;
+		// FIXME check this hashfunction
 		if (Float.floatToIntBits(k1) != Float.floatToIntBits(other.k1))
 			return false;
 		return true;
@@ -196,8 +201,8 @@ public class BM25FParameters {
 	 */
 	@Override
 	public String toString() {
-		return "BM25FParameters [fields=" + Arrays.toString(fields)
-				+ ", boosts=" + boosts + ", bParams=" + bParams + ", k1=" + k1
+		return "BM25FParameters [fields=" + fields.toString()
+				+ ", fieldWeights=" + fieldWeights + ", fieldLengthBoosts=" + fieldLengthBoosts + ", k1=" + k1
 				+ "]";
 	}
 

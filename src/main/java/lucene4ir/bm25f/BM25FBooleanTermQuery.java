@@ -90,7 +90,7 @@ public class BM25FBooleanTermQuery extends Query {
         this.stats = new Similarity.SimWeight[fields.length];
         for (int i = 0; i < fields.length; i++) {
           final Term fieldTerm = new Term(fields[i], term.text());
-          // getBoosts is not used
+          // getFieldWeights is not used
           this.stats[i] = similarity.computeWeight(
               searcher.collectionStatistics(fieldTerm.field()),
               searcher.termStatistics(fieldTerm, fieldTermStates[i]));
@@ -105,7 +105,7 @@ public class BM25FBooleanTermQuery extends Query {
         }
         
         final Term fieldTerm = new Term(fields[fieldPos], term.text());
-        // getBoosts is not used
+        // getFieldWeights is not used
         this.stats = new Similarity.SimWeight[1];
         this.stats[0] = similarity.computeWeight(
             searcher.collectionStatistics(fieldTerm.field()),

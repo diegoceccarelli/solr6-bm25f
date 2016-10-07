@@ -50,16 +50,16 @@ public class BM25FSimilarity extends Similarity {
 	public BM25FSimilarity() {
 		// logger.info("no defaults");
 		params = new BM25FParameters();
-		boosts = params.getBoosts();
-		lengthBoosts = params.getbParams();
+		boosts = params.getFieldWeights();
+		lengthBoosts = params.getFieldLengthBoosts();
 		k1 = params.getK1();
 	}
 
 	public void setBM25FParams(BM25FParameters bm25fparams) {
 		params = bm25fparams;
 
-		boosts = params.getBoosts();
-		lengthBoosts = params.getbParams();
+		boosts = params.getFieldWeights();
+		lengthBoosts = params.getFieldLengthBoosts();
 		k1 = params.getK1();
 	}
 
@@ -70,8 +70,8 @@ public class BM25FSimilarity extends Similarity {
 	public BM25FSimilarity(BM25FParameters params) {
 		// logger.info("defaults");
 		this.params = params;
-		boosts = params.getBoosts();
-		lengthBoosts = params.getbParams();
+		boosts = params.getFieldWeights();
+		lengthBoosts = params.getFieldLengthBoosts();
 		k1 = params.getK1();
 	}
 
@@ -236,8 +236,8 @@ public class BM25FSimilarity extends Similarity {
 //		final Explanation idf = termStats.length == 1 ? idfExplain(collectionStats,
 //				termStats[0]) : idfExplain(collectionStats, termStats);
 //
-//		boosts = params.getBoosts();
-//		lengthBoosts = params.getbParams();
+//		boosts = params.getFieldWeights();
+//		lengthBoosts = params.getFieldLengthBoosts();
 //		k1 = params.getK1();
 //
 //		final String field = collectionStats.field();
@@ -280,8 +280,8 @@ public class BM25FSimilarity extends Similarity {
 				throws IOException {
 
 			this.stats = stats;
-			bParams = params.getbParams();
-			boosts = params.getBoosts();
+			bParams = params.getFieldLengthBoosts();
+			boosts = params.getFieldWeights();
 
 			// this.cache = stats.cache;
 
@@ -406,13 +406,13 @@ public class BM25FSimilarity extends Similarity {
 
 //	private Explanation explainScore(int doc, Explanation freq,
 //			BM25FSimWeight stats, byte[] norms, float finalScore) {
-//		boosts = params.getBoosts();
-//		lengthBoosts = params.getbParams();
+//		boosts = params.getFieldWeights();
+//		lengthBoosts = params.getFieldLengthBoosts();
 //		k1 = params.getK1();
 //
 //		// // return queryBoost * freq / cache[norms[doc] & 0xFF];
-//		// float bField = params.getbParams().get(stats.field);
-//		// float boost = params.getBoosts().get(stats.field);
+//		// float bField = params.getFieldLengthBoosts().get(stats.field);
+//		// float boost = params.getFieldWeights().get(stats.field);
 //		// float num = freq * boost;
 //		//
 //		// float den = 1 - bField;

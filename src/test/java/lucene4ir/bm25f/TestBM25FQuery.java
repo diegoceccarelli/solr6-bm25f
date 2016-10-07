@@ -21,6 +21,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.RandomIndexWriter;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.queryparser.surround.parser.QueryParser;
@@ -48,28 +49,30 @@ public class TestBM25FQuery extends LuceneTestCase {
     indexWriterUnderTest = new RandomIndexWriter(random(), dirUnderTest);
     final Document doc = new Document();
     doc.add(newStringField("id", "0", Store.YES));
-    doc.add(newStringField("title", "leonardo da vinci", Store.YES));
-    doc.add(newStringField("author", "leonardo da", Store.YES));
-    doc.add(newStringField("description", "VIDEO", Store.YES));
+    doc.add(newTextField("title", "leonardo da vinci", Store.YES));
+    doc.add(newTextField("author", "leonardo da", Store.YES));
+    doc.add(newTextField("description", "VIDEO", Store.YES));
     
     indexWriterUnderTest.addDocument(doc);
     
-    doc.add(newStringField("id", "0", Store.YES));
-    doc.add(newStringField("title", "leonardo ", Store.YES));
-    doc.add(newStringField("author", "leonardo da vinci ", Store.YES));
-    doc.add(newStringField("description", "IMAGE", Store.YES));
+    doc.add(newStringField("id", "1", Store.YES));
+    doc.add(newTextField("title", "leonardo ", Store.YES));
+    doc.add(newTextField("author", "leonardo da vinci ", Store.YES));
+    doc.add(newTextField("description", "IMAGE", Store.YES));
     
     indexWriterUnderTest.addDocument(doc);
     
-    doc.add(newStringField("id", "0", Store.YES));
-    doc.add(newStringField("title", "leonardo da vinci", Store.YES));
-    doc.add(newStringField("author", "leonardo da", Store.YES));
-    doc.add(newStringField("description", "VIDEO", Store.YES));
+    doc.add(newStringField("id", "2", Store.YES));
+    doc.add(newTextField("title", "leonardo da vinci", Store.YES));
+    doc.add(newTextField("author", "leonardo da", Store.YES));
+    doc.add(newTextField("description", "VIDEO", Store.YES));
     
     indexWriterUnderTest.addDocument(doc);
-    
+
+    indexWriterUnderTest.commit();
     indexReaderUnderTest = indexWriterUnderTest.getReader();
     searcherUnderTest = newSearcher(indexReaderUnderTest);
+
   }
   
   @After
@@ -80,20 +83,38 @@ public class TestBM25FQuery extends LuceneTestCase {
     
   }
   
-  public ScoreDoc getResults(String field, String query) {
-    final Query q = 
+  public ScoreDoc[] getResults(String field, String query) throws IOException {
+    final BM25FParameters bm25FParameters = new BM25FParameters();
+    bm25FParameters.setK1(1);
+    bm25FParameters.addFieldParams("title", 1,1);
+    bm25FParameters.addFieldParams("author", 1,1);
+    bm25FParameters.addFieldParams("description", 1,1);
+    bm25FParameters.setMainField("title");
+    final Query q = new BM25FBooleanTermQuery(new Term(field,query), bm25FParameters);
     // we should get the "brown" docs backwards first (ie the nworb)
     final TopDocs t = searcherUnderTest.search(q, 10);
     final ScoreDoc[] docs = t.scoreDocs;
+    return docs;
   }
+
+  public ScoreDoc[] normalQuery(String field, String query) throws QueryNodeException, IOException {
+    StandardQueryParser parser = new StandardQueryParser();
+    Query q = parser.parse(query, field);
+
+    // we should get the "brown" docs backwards first (ie the nworb)
+    final TopDocs t = searcherUnderTest.search(q, 10);
+    final ScoreDoc[] docs = t.scoreDocs;
+    return docs;
+  }
+
   
   @Test
   public void testSearch() throws IOException, QueryNodeException {
-    final Query q = new StandardQueryParser().parse("how", "field");
     // we should get the "brown" docs backwards first (ie the nworb)
-    final TopDocs t = searcherUnderTest.search(q, 10);
-    final ScoreDoc[] docs = t.scoreDocs;
-    assertEquals(1, docs.length);
+
+    final ScoreDoc[] docs = getResults("title","leonardo");
+    //final ScoreDoc[] docs = normalQuery("title", "leonardo");
+    assertEquals(3, docs.length);
     
   }
   
