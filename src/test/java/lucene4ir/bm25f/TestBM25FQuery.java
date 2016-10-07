@@ -41,6 +41,8 @@ public class TestBM25FQuery extends LuceneTestCase {
   RandomIndexWriter indexWriterUnderTest;
   IndexReader indexReaderUnderTest;
   Directory dirUnderTest;
+
+  final BM25FParameters bm25FParameters = new BM25FParameters();
   
   @Before
   public void setupIndex() throws IOException {
@@ -73,6 +75,13 @@ public class TestBM25FQuery extends LuceneTestCase {
     indexReaderUnderTest = indexWriterUnderTest.getReader();
     searcherUnderTest = newSearcher(indexReaderUnderTest);
 
+    bm25FParameters.setK1(1);
+    bm25FParameters.addFieldParams("title", 1,1);
+    bm25FParameters.addFieldParams("author", 1,1);
+    bm25FParameters.addFieldParams("description", 1,1);
+    bm25FParameters.setMainField("title");
+    searcherUnderTest.setSimilarity(new BM25FSimilarity(bm25FParameters));
+
   }
   
   @After
@@ -82,15 +91,12 @@ public class TestBM25FQuery extends LuceneTestCase {
     dirUnderTest.close();
     
   }
+
   
   public ScoreDoc[] getResults(String field, String query) throws IOException {
-    final BM25FParameters bm25FParameters = new BM25FParameters();
-    bm25FParameters.setK1(1);
-    bm25FParameters.addFieldParams("title", 1,1);
-    bm25FParameters.addFieldParams("author", 1,1);
-    bm25FParameters.addFieldParams("description", 1,1);
-    bm25FParameters.setMainField("title");
+
     final Query q = new BM25FBooleanTermQuery(new Term(field,query), bm25FParameters);
+
     // we should get the "brown" docs backwards first (ie the nworb)
     final TopDocs t = searcherUnderTest.search(q, 10);
     final ScoreDoc[] docs = t.scoreDocs;
