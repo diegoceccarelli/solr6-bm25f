@@ -130,10 +130,10 @@ public class TestBM25FQuery extends LuceneTestCase {
     final Query q = new BM25FBooleanTermQuery(new Term("title","leonardo"), bm25FParameters);
 
     final ScoreDoc[] docs = getResults("title","leonardo");
+    assertTrue(true);
     for(ScoreDoc doc: docs){
-      System.out.println("Score ==> "+doc.score);
-      System.out.println( searcherUnderTest.explain(q, doc.doc));
-
+     // System.out.println(searcherUnderTest.explain(q, doc.doc));
+      assertEquals(doc.score, searcherUnderTest.explain(q, doc.doc).getValue(), 0.0001);
     }
 
 

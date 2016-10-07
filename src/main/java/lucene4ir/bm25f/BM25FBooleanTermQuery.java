@@ -151,7 +151,7 @@ public class BM25FBooleanTermQuery extends Query {
             PostingsEnum docsEnum = null;
             if (stats.length == 1) {
                 // termDocs = getTermsEnum(context, fields[i],i);
-                docsEnum = getDocsEnum(context, term.field());
+                docsEnum = context.reader().postings(new Term(fields[0], term.text()));
                 if (docsEnum != null) {
                     scorers[0] = similarity.simScorer(stats[0], context);
                     docsEnums[0] = docsEnum;
@@ -159,7 +159,8 @@ public class BM25FBooleanTermQuery extends Query {
             } else {
                 for (int i = 0; i < stats.length; i++) {
                     // termDocs = getTermsEnum(context, fields[i],i);
-                    docsEnum = getDocsEnum(context, fields[i]);
+                    docsEnum = context.reader().postings(new Term(fields[i], term.text()));
+
                     if (docsEnum != null) {
                         scorers[i] = similarity.simScorer(stats[i], context);
                         docsEnums[i] = docsEnum;
@@ -187,46 +188,43 @@ public class BM25FBooleanTermQuery extends Query {
 
         @Override
         public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-            final Scorer scorer = scorer(context);
-            if (scorer == null) {
-                return Explanation.match(0.0f, "no matching term");
+
+
+            final SimScorer[] scorers = new SimScorer[stats.length];
+            for (int i = 0; i < stats.length; i++) {
+                scorers[i] = similarity.simScorer(stats[i], context);
             }
-            final DocIdSetIterator iterator = scorer.iterator();
-            final int newDoc = iterator.advance(doc);
-            if (newDoc == doc) {
-                final SimScorer[] scorers = new SimScorer[stats.length];
-                for (int i = 0; i < stats.length; i++) {
-                    scorers[i] = similarity.simScorer(stats[i], context);
+
+            float acum = 0;
+            final List<Explanation> sub = new ArrayList<>();
+
+            for (int i = 0; i < stats.length; i++) {
+
+
+                PostingsEnum posting = context.reader().postings(new Term(fields[i], term.text()));
+                if (posting == null) continue;
+                posting.advance(doc);
+                int freq = posting.freq();
+                if (freq == 0) {
+                    continue;
                 }
+                final Explanation freqExplanation = Explanation.match(freq, "tf in " + fields[i]);
 
-                float acum = 0;
-                final List<Explanation> sub = new ArrayList<>();
-                for (int i = 0; i < stats.length; i++) {
-
-                    final int freq = ((BM25FTermScorer) scorer).getFieldFreq(i);
-                    if (freq == 0) {
-                        continue;
-                    }
-                    final Explanation freqExplanation = Explanation.match(freq, "tf in " + fields[i]);
-
-                    final Explanation scoreExplanation = scorers[i].explain(doc, freqExplanation);
-                    acum += scoreExplanation.getValue();
-                    sub.add(scoreExplanation);
-                }
-
-                final Explanation scores = Explanation.match(acum, "field scores, sum of:", sub);
-                Explanation idfExplanation = Explanation.match(idf, "idf");
-                Explanation k1Explanation = Explanation.match(k1, "k1");
-                Explanation sum = Explanation.match(k1+acum,"Sum of ", k1Explanation, scores);
-                Explanation div = Explanation.match(acum /(k1 + acum), "Division Of", scores, sum);
-                Explanation result = Explanation.match(idf * div.getValue(), "Product Of", idfExplanation, div);
-
-                return result;
-
-
-            } else {
-                return Explanation.match(0.0f, "no matching term");
+                final Explanation scoreExplanation = scorers[i].explain(doc, freqExplanation);
+                acum += scoreExplanation.getValue();
+                sub.add(scoreExplanation);
             }
+
+            final Explanation scores = Explanation.match(acum, "field scores, sum of:", sub);
+            Explanation idfExplanation = Explanation.match(idf, "idf");
+            Explanation k1Explanation = Explanation.match(k1, "k1");
+            Explanation sum = Explanation.match(k1 + acum, "Sum of ", k1Explanation, scores);
+            Explanation div = Explanation.match(acum / (k1 + acum), "Division Of", scores, sum);
+            Explanation result = Explanation.match(idf * div.getValue(), "Product Of", idfExplanation, div);
+
+            return result;
+
+
         }
 
         @Override
