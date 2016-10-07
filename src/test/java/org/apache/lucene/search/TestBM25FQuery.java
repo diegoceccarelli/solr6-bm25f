@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package lucene4ir.bm25f;
+package org.apache.lucene.search;
 
 import java.io.IOException;
 
@@ -24,11 +24,7 @@ import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
-import org.apache.lucene.queryparser.surround.parser.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25FSimilarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
@@ -93,7 +89,7 @@ public class TestBM25FQuery extends LuceneTestCase {
   }
 
   
-  public ScoreDoc[] getResults(String field, String query) throws IOException {
+  public ScoreDoc[] getBM25FResults(String field, String query) throws IOException {
 
     final Query q = new BM25FBooleanTermQuery(new Term(field,query), bm25FParameters);
 
@@ -102,42 +98,24 @@ public class TestBM25FQuery extends LuceneTestCase {
     final ScoreDoc[] docs = t.scoreDocs;
     return docs;
   }
-
-  public ScoreDoc[] normalQuery(String field, String query) throws QueryNodeException, IOException {
-    StandardQueryParser parser = new StandardQueryParser();
-    Query q = parser.parse(query, field);
-
-    // we should get the "brown" docs backwards first (ie the nworb)
-    final TopDocs t = searcherUnderTest.search(q, 10);
-    final ScoreDoc[] docs = t.scoreDocs;
-    return docs;
-  }
-
   
   @Test
   public void testSearch() throws IOException, QueryNodeException {
     // we should get the "brown" docs backwards first (ie the nworb)
-
-    final ScoreDoc[] docs = getResults("title","leonardo");
-    //final ScoreDoc[] docs = normalQuery("title", "leonardo");
+    final ScoreDoc[] docs = getBM25FResults("title","leonardo");
     assertEquals(3, docs.length);
-    
   }
 
   @Test
-  public void testExplain() throws IOException{
+  public void testExplainMatchScore() throws IOException{
     // we should get an explain of a main score and sub scores per term
     final Query q = new BM25FBooleanTermQuery(new Term("title","leonardo"), bm25FParameters);
 
-    final ScoreDoc[] docs = getResults("title","leonardo");
-    assertTrue(true);
+    final ScoreDoc[] docs = getBM25FResults("title","leonardo");
     for(ScoreDoc doc: docs){
-     // System.out.println(searcherUnderTest.explain(q, doc.doc));
+      System.out.println(searcherUnderTest.explain(q, doc.doc));
       assertEquals(doc.score, searcherUnderTest.explain(q, doc.doc).getValue(), 0.0001);
     }
-
-
-
   }
   
 }

@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package lucene4ir.bm25f;
+package org.apache.lucene.search;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -28,7 +27,7 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermContext;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.similarities.BM25FSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.search.similarities.Similarity.SimScorer;
 
@@ -220,7 +219,7 @@ public class BM25FBooleanTermQuery extends Query {
             Explanation k1Explanation = Explanation.match(k1, "k1");
             Explanation sum = Explanation.match(k1 + acum, "Sum of ", k1Explanation, scores);
             Explanation div = Explanation.match(acum / (k1 + acum), "Division Of", scores, sum);
-            Explanation result = Explanation.match(idf * div.getValue(), "Product Of", idfExplanation, div);
+            Explanation result = Explanation.match(idf * div.getValue(), "[docid:"+doc+"] Product Of", idfExplanation, div);
 
             return result;
 

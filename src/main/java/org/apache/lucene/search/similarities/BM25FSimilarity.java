@@ -13,18 +13,18 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package lucene4ir.bm25f;
+package org.apache.lucene.search.similarities;
 
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.lucene.search.BM25FParameters;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.TermStatistics;
-import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.SmallFloat;
 
@@ -156,7 +156,7 @@ public class BM25FSimilarity extends Similarity {
 //	  final Explanation idf = termStats.length == 1 ? idfExplain(collectionStats,
 //				termStats[0]) : idfExplain(collectionStats, termStats);
 //
-	  float idf = 0.5f;
+	  float idf = idf(termStats[0].docFreq(), collectionStats.docCount());
 	  boosts = params.getFieldWeights();
 	  lengthBoosts = params.getFieldLengthBoosts();
 	  k1 = params.getK1();
@@ -209,31 +209,6 @@ public class BM25FSimilarity extends Similarity {
 	}
 
 
-//	public Explanation idfExplain(CollectionStatistics collectionStats,
-//			TermStatistics termStats) {
-//		final long df = termStats.docFreq();
-//		final long max = collectionStats.maxDoc();
-//		final float idf = idf(df, max);
-//		return new Explanation(idf, "idf(docFreq=" + df + ", maxDocs=" + max
-//				+ ")");
-//	}
-
-//	public Explanation idfExplain(CollectionStatistics collectionStats,
-//			TermStatistics termStats[]) {
-//		final long max = collectionStats.maxDoc();
-//		float idf = 0.0f;
-//		final Explanation exp = new Explanation();
-//		exp.setDescription("idf(), sum of:");
-//		for (final TermStatistics stat : termStats) {
-//			final long df = stat.docFreq();
-//			final float termIdf = idf(df, max);
-//			exp.addDetail(new Explanation(termIdf, "idf(docFreq=" + df
-//					+ ", maxDocs=" + max + ")"));
-//			idf += termIdf;
-//		}
-//		exp.setValue(idf);
-//		return exp;
-//	}
 
 	/**
 	 * Return the inverse document frequency (IDF), given the document frequency
@@ -260,51 +235,12 @@ public class BM25FSimilarity extends Similarity {
 		return k1;
 	}
 
-//	@Override
-//	public SimWeight computeWeight(float queryBoost,
-//			CollectionStatistics collectionStats, TermStatistics... termStats) {
-//		final Explanation idf = termStats.length == 1 ? idfExplain(collectionStats,
-//				termStats[0]) : idfExplain(collectionStats, termStats);
-//
-//		boosts = params.getFieldWeights();
-//		lengthBoosts = params.getFieldLengthBoosts();
-//		k1 = params.getK1();
-//
-//		final String field = collectionStats.field();
-//		final float avgdl = avgFieldLength(collectionStats);
-//
-//		// ignoring query boost, using bm25f query boost
-//		float boost = 1;
-//		if (boosts.containsKey(field)) {
-//			boost = boosts.get(field);
-//		}
-
-		// compute freq-independent part of bm25 equation across all norm values
-		// float cache[] = new float[256];
-		// for (int i = 0; i < cache.length; i++) {
-		// cache[i] = ((1 - bField) + bField * decodeNormValue((byte) i)
-		// / avgdl);
-		// System.out.println("cache " + i + "\t" + cache[i]);
-		// }
-
-//		return new BM25FSimWeight(field, idf, boost, avgdl, null, k1);
-//	}
-
-//	@Override
-//	public SloppySimScorer sloppySimScorer(SimWeight weight,
-//			LeafReaderContext context) throws IOException {
-//		final BM25FSimWeight w = (BM25FSimWeight) weight;
-//		return new BM25FSloppySimScorer(w, context.reader().normValues(w.field));
-//	}
-
 	public class BM25FSimScorer extends SimScorer {
 
 		private final BM25FSimWeight stats;
 		private final NumericDocValues norms;
 		private final Map<String, Float> bParams;
 		private final Map<String, Float> boosts;
-
-		// private final float[] cache;
 
 		BM25FSimScorer(BM25FSimWeight stats, NumericDocValues norms)
 				throws IOException {
@@ -442,109 +378,5 @@ public class BM25FSimilarity extends Similarity {
 		return  finalScore;
 
     }
-//
-//		final Explanation boostExpl = new Explanation(boost, "boost[" + stats.field
-//				+ "]");
-//
-//		num.addDetail(freq);
-//		num.addDetail(boostExpl);
-//		num.setValue(freq.getValue() * boostExpl.getValue());
-//		float b = 0;
-//		if ((lengthBoosts != null) && (stats != null) && (stats.field != null)) {
-//
-//			final Float f = lengthBoosts.get(stats.field);
-//			if (f != null) {
-//        b = f;
-//      }
-//		}
-//		final Explanation bField = new Explanation(b, "lengthBoost(" + stats.field
-//				+ ")");
-//		final Explanation averageLength = new Explanation(stats.avgdl,
-//				"avgFieldLength(" + stats.field + ")");
-//
-//		float length = -1;
-//		Explanation fieldLength;
-//		final Explanation product = new Explanation();
-//
-//		if (norms != null) {
-//			product.setDescription("denominator: ((1 - bField) + bField * length / avgFieldLength) :");
-//			length = decodeNormValue(norms[doc]);
-//
-//			product.setValue((1 - b) + (b * (length / stats.avgdl)));
-//
-//			fieldLength = new Explanation(length, "length(" + stats.field + ")");
-//			product.addDetail(fieldLength);
-//			product.addDetail(averageLength);
-//
-//		} else {
-//			product.setDescription("[nofieldlength] denominator: ((1 - bField)");
-//			product.setValue(1 - b);
-//
-//		}
-//
-//		product.addDetail(bField);
-//
-//		result.addDetail(num);
-//		result.addDetail(product);
-//		result.setValue(finalScore);
-//
-//		return result;
-//	}
-
-//	public class BM25FSloppySimScorer extends SloppySimScorer {
-//
-//		private final BM25FSimWeight stats;
-//		// private final float weightValue; // boost * idf * (k1 + 1)
-//		private final byte[] norms;
-//
-//		BM25FSloppySimScorer(BM25FSimWeight stats, DocValues norms)
-//				throws IOException {
-//			this.stats = stats;
-//			// this.weightValue = stats.weight ;
-//			this.norms = norms == null ? null : (byte[]) norms.getSource()
-//					.getArray();
-//
-//		}
-//
-//		@Override
-//		public float score(int doc, float freq) {
-//			// FIXME compute score in sloppy sim scorer
-//			return freq;
-//		}
-//
-
-//
-//		@Override
-//		public float computeSlopFactor(int distance) {
-//			return sloppyFreq(distance);
-//		}
-//
-//		@Override
-//		public float computePayloadFactor(int doc, int start, int end,
-//				BytesRef payload) {
-//			return scorePayload(doc, start, end, payload);
-//		}
-//
-//	}
-//
-//  @Override
-//  public long computeNorm(FieldInvertState arg0) {
-//    // TODO Auto-generated method stub
-//    return 0;
-//  }
-//
-//  @Override
-//  public SimWeight computeWeight(CollectionStatistics arg0,
-//      TermStatistics... arg1) {
-//    // TODO Auto-generated method stub
-//    return null;
-//  }
-//
-//  @Override
-//  public SimScorer simScorer(SimWeight arg0, LeafReaderContext arg1)
-//      throws IOException {
-//    // TODO Auto-generated method stub
-//    return null;
-//  }
 
 }
