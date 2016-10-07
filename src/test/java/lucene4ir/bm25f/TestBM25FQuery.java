@@ -131,6 +131,7 @@ public class TestBM25FQuery extends LuceneTestCase {
 
     final ScoreDoc[] docs = getResults("title","leonardo");
     for(ScoreDoc doc: docs){
+      System.out.println("Score ==> "+doc.score);
       System.out.println( searcherUnderTest.explain(q, doc.doc));
 
     }

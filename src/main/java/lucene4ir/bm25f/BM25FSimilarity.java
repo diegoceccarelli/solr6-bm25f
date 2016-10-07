@@ -184,6 +184,8 @@ public class BM25FSimilarity extends Similarity {
 	  return new BM25FSimWeight(field, idf, boost, avgdl, null, k1);
 
   }
+
+
 	/**
 	 * Compute the average length for a field, given its stats.
 	 * 
@@ -206,7 +208,6 @@ public class BM25FSimilarity extends Similarity {
 		return 1;
 	}
 
-	public Explanation explain(int doc, Explanation freq) {
 
 //	public Explanation idfExplain(CollectionStatistics collectionStats,
 //			TermStatistics termStats) {
@@ -319,42 +320,26 @@ public class BM25FSimilarity extends Similarity {
 		}
 
 		@Override
-		public float score(int doc, float freq) {
+		public Explanation explain(int doc, Explanation freq) {
 
-			// return queryBoost * freq / cache[norms[doc] & 0xFF];
-			if ((bParams == null) || (boosts == null) || (stats.field == null)
-					|| !bParams.containsKey(stats.field)) {
-				// bm25f not initialited... ignore
-				return 1.0f;
-			}
-			final float bField = bParams.get(stats.field);
-			final float boost = boosts.get(stats.field);
-			final float num = freq * boost;
-
-			float den = 1 - bField;
-			if (norms == null) {
-				//logger.warn("no norms for field {} ", stats.field);
-			} else {
-
-				//inal byte norm = this.norms[doc];
-				//den += (bField * decodeNormValue(norm)) / stats.avgdl;
-			  den = norms.get(doc);
-			  // FIXME check this
-			}
-
-			if (den == 0) {
-        return 0;
-      }
-			return num / den;
-
+			return explainScore(doc, freq, stats, norms);
 		}
 
-//		@Override
-//		public Explanation explain(int doc, Explanation freq) {
-//
-//			return explainScore(doc, freq, stats, norms,
-//					score(doc, (int) freq.getValue()));
-//		}
+		@Override
+		public float score(int doc, float freq) {
+			String field = stats.getField();
+
+			float fieldBoost = params.getBoost(field);
+			float fieldLengthBoost = params.getLengthBoost(field);
+			float fieldLength = decodeNormValue((byte)norms.get(doc));
+			float fieldAverageLength = stats.avgdl;
+
+			float nominator = freq * fieldBoost;
+			float denomitor = ((1 - fieldLengthBoost) + fieldLengthBoost * (fieldLength/ fieldAverageLength));
+			return nominator / denomitor;
+		}
+
+
 
     @Override
     public float computePayloadFactor(int arg0, int arg1, int arg2,
@@ -433,25 +418,29 @@ public class BM25FSimilarity extends Similarity {
 
 
 
-	private Explanation explainScore(int doc, Explanation freqExplain, BM25FSimWeight stats, byte[] norms) {
+	private Explanation explainScore(int doc, Explanation freqExplain, BM25FSimWeight stats, NumericDocValues norms) {
 		String field = stats.getField();
 		float freq = freqExplain.getValue();
-		float fieldWeight;
-		float fieldLengthWeight;
-		float fieldLength;
-		float fieldAverageLength;
-		k1 = params.getK1();
+		float fieldWeight = params.getBoost(field);
+		float fieldLengthWeight = params.getLengthBoost(field);
+		float fieldLength = decodeNormValue((byte)norms.get(doc));
+		float fieldAverageLength = stats.avgdl;
 
+		Explanation boostExplain = Explanation.match(fieldWeight,"Field Boost:"+field);
+		Explanation explainNumerator = Explanation.match(freq * fieldWeight,"Product of:",freqExplain,boostExplain);
+		Explanation oneMinusBc = Explanation.match(1 - fieldLengthWeight, "1 - FieldLengthWeight["+field +"]");
+		Explanation fieldLengthExplain = Explanation.match(fieldLength, "FieldLength");
+		Explanation fieldAverageLengthExplain = Explanation.match(fieldAverageLength, "FieldAverageLength");
+		Explanation lengthRatio = Explanation.match(fieldLength / fieldAverageLength, "Division of ", fieldLengthExplain, fieldAverageLengthExplain);
 
-//		final Explanation result = Explanation.match()
-		result.setDescription("score(doc=" + doc + ",field=" + stats.field
-				+ ", freq=" + freq + "), division of:");
+		Explanation lenghtBoostExplain = Explanation.match(fieldLengthWeight, "FieldLengthWeight");
+		Explanation boostLengthRatio = Explanation.match(lengthRatio.getValue() * lenghtBoostExplain.getValue(), "Product of",lenghtBoostExplain, lengthRatio );
+		Explanation denomExplain = Explanation.match(oneMinusBc.getValue() + boostLengthRatio.getValue(), "Sum of",oneMinusBc, boostLengthRatio);
 
-		final Explanation num = new Explanation();
-		num.setDescription(" numerator, product of: ");
-		float boost = 0;
-		if (boosts != null) {
-      boost = boosts.get(stats.field);
+		Explanation finalScore = Explanation.match(explainNumerator.getValue() / denomExplain.getValue() , "Division of" , explainNumerator, denomExplain);
+
+		return  finalScore;
+
     }
 //
 //		final Explanation boostExpl = new Explanation(boost, "boost[" + stats.field
@@ -523,12 +512,7 @@ public class BM25FSimilarity extends Similarity {
 //			return freq;
 //		}
 //
-//		@Override
-//		public Explanation explain(int doc, Explanation freq) {
-//
-//			return explainScore(doc, freq, stats, norms,
-//					score(doc, freq.getValue()));
-//		}
+
 //
 //		@Override
 //		public float computeSlopFactor(int distance) {

@@ -217,7 +217,9 @@ public class BM25FBooleanTermQuery extends Query {
                 final Explanation scores = Explanation.match(acum, "field scores, sum of:", sub);
                 Explanation idfExplanation = Explanation.match(idf, "idf");
                 Explanation k1Explanation = Explanation.match(k1, "k1");
-                Explanation result = Explanation.match(scorer.score(), "idf(t) * [field scores / (k1) + field scores]", scores, idfExplanation, k1Explanation);
+                Explanation sum = Explanation.match(k1+acum,"Sum of ", k1Explanation, scores);
+                Explanation div = Explanation.match(acum /(k1 + acum), "Division Of", scores, sum);
+                Explanation result = Explanation.match(idf * div.getValue(), "Product Of", idfExplanation, div);
 
                 return result;
 
