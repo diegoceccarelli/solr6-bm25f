@@ -137,7 +137,7 @@ public class BM25FBooleanTermQuery extends Query {
         }
 
         @Override
-        public Scorer scorer(LeafReaderContext context) throws IOException {
+        public BM25FTermScorer scorer(LeafReaderContext context) throws IOException {
             assert termStates.topReaderContext == ReaderUtil
                     .getTopLevelContext(context) : "The top-reader used to create Weight ("
                     + termStates.topReaderContext
@@ -187,23 +187,16 @@ public class BM25FBooleanTermQuery extends Query {
 
         @Override
         public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-
-
             final SimScorer[] scorers = new SimScorer[stats.length];
             for (int i = 0; i < stats.length; i++) {
                 scorers[i] = similarity.simScorer(stats[i], context);
             }
-
+            BM25FTermScorer scorer = scorer(context);
+            scorer.iterator().advance(doc);
             float acum = 0;
             final List<Explanation> sub = new ArrayList<>();
-
             for (int i = 0; i < stats.length; i++) {
-
-
-                PostingsEnum posting = context.reader().postings(new Term(fields[i], term.text()));
-                if (posting == null) continue;
-                posting.advance(doc);
-                int freq = posting.freq();
+                int freq = scorer.getFieldFreq(i);
                 if (freq == 0) {
                     continue;
                 }
@@ -213,7 +206,6 @@ public class BM25FBooleanTermQuery extends Query {
                 acum += scoreExplanation.getValue();
                 sub.add(scoreExplanation);
             }
-
             final Explanation scores = Explanation.match(acum, "field scores, sum of:", sub);
             Explanation idfExplanation = Explanation.match(idf, "idf");
             Explanation k1Explanation = Explanation.match(k1, "k1");

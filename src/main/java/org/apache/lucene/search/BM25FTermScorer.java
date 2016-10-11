@@ -32,22 +32,16 @@ import org.apache.lucene.util.Bits;
  *         Created on Nov 25, 2012
  */
 public class BM25FTermScorer extends Scorer {
-  SimScorer[] scorers;
-  PostingsEnum[] docsEnums;
-  Bits acceptDocs;
+  private final SimScorer[] scorers;
+  private final PostingsEnum[] docsEnums;
+  private final Bits acceptDocs;
   int docId = 0;
-  float k1;
-  float idf;
-  BM25DocIdSetIterator iterator;
+  private float k1;
+  private float idf;
+  private final BM25DocIdSetIterator iterator;
 
 
-  /**
-   * @param bm25fTermWeight
-   * @param docs
-   * @param scorers
-   * @param docFreq
-   * @throws IOException
-   */
+
   public BM25FTermScorer(BM25FTermWeight bm25fTermWeight, SimScorer[] scorers,
       PostingsEnum[] docs, Bits acceptDocs) throws IOException {
     super(bm25fTermWeight);

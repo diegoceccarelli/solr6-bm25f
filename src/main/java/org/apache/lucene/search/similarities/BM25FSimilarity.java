@@ -271,8 +271,8 @@ public class BM25FSimilarity extends Similarity {
 			float fieldAverageLength = stats.avgdl;
 
 			float nominator = freq * fieldBoost;
-			float denomitor = ((1 - fieldLengthBoost) + fieldLengthBoost * (fieldLength/ fieldAverageLength));
-			return nominator / denomitor;
+			float denominator = ((1 - fieldLengthBoost) + fieldLengthBoost * (fieldLength/ fieldAverageLength));
+			return nominator / denominator;
 		}
 
 

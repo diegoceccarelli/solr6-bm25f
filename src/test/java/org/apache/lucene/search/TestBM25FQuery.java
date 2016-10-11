@@ -20,6 +20,8 @@ import java.io.IOException;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
@@ -30,6 +32,8 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 public class TestBM25FQuery extends LuceneTestCase {
   
@@ -45,21 +49,23 @@ public class TestBM25FQuery extends LuceneTestCase {
     dirUnderTest = newDirectory();
     
     indexWriterUnderTest = new RandomIndexWriter(random(), dirUnderTest);
-    final Document doc = new Document();
+    Document doc = new Document();
     doc.add(newStringField("id", "0", Store.YES));
     doc.add(newTextField("title", "leonardo da vinci", Store.YES));
     doc.add(newTextField("author", "leonardo da", Store.YES));
     doc.add(newTextField("description", "VIDEO", Store.YES));
     
     indexWriterUnderTest.addDocument(doc);
-    
+
+    doc = new Document();
     doc.add(newStringField("id", "1", Store.YES));
     doc.add(newTextField("title", "leonardo ", Store.YES));
     doc.add(newTextField("author", "leonardo da vinci ", Store.YES));
     doc.add(newTextField("description", "IMAGE", Store.YES));
     
     indexWriterUnderTest.addDocument(doc);
-    
+
+    doc = new Document();
     doc.add(newStringField("id", "2", Store.YES));
     doc.add(newTextField("title", "leonardo da vinci", Store.YES));
     doc.add(newTextField("author", "leonardo da", Store.YES));
@@ -106,6 +112,7 @@ public class TestBM25FQuery extends LuceneTestCase {
     assertEquals(3, docs.length);
   }
 
+
   @Test
   public void testExplainMatchScore() throws IOException{
     // we should get an explain of a main score and sub scores per term
@@ -113,7 +120,7 @@ public class TestBM25FQuery extends LuceneTestCase {
 
     final ScoreDoc[] docs = getBM25FResults("title","leonardo");
     for(ScoreDoc doc: docs){
-      System.out.println(searcherUnderTest.explain(q, doc.doc));
+      //System.out.println(searcherUnderTest.explain(q, doc.doc));
       assertEquals(doc.score, searcherUnderTest.explain(q, doc.doc).getValue(), 0.0001);
     }
   }
