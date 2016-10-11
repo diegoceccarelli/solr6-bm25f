@@ -1,7 +1,7 @@
 ## BM25F
 
 the BM25F ranking formula is an extension of the BM25 ranking formula, modified to work
-on documents with several fields [1][1],[2][2]
+on documents with several fields (see [Wikipedia BM25F][1], or [this article by Perez-Iglesias et al.][2]).
 
 ## BM25F for Solr
 
